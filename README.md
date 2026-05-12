@@ -2,6 +2,8 @@
 
 > **这才是高校就业服务应有的样子。**
 
+**🚀 在线体验**: [https://youxuels.github.io/careerlens/](https://youxuels.github.io/careerlens/)
+
 ## 🎯 这是什么
 
 CareerLens 是一个**基于学生背景 + 市场数据 + AI推理**的职业路径预测系统。
