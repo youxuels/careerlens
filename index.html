@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerLens - 职业透视镜</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-secondary: #f5f5f7;
+            --bg-tertiary: #fbfbfd;
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-tertiary: #86868b;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --accent-light: rgba(0,113,227,0.08);
+            --accent-lighter: rgba(0,113,227,0.04);
+            --green: #34c759;
+            --green-light: rgba(52,199,89,0.1);
+            --orange: #ff9500;
+            --orange-light: rgba(255,149,0,0.1);
+            --red: #ff3b30;
+            --red-light: rgba(255,59,48,0.1);
+            --purple: #af52de;
+            --purple-light: rgba(175,82,222,0.1);
+            --border: rgba(0,0,0,0.08);
+            --border-strong: rgba(0,0,0,0.12);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 14px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.05);
+            --shadow-xl: 0 24px 60px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 24px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+        .hero-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            z-index: 0; pointer-events: none; opacity: 0.6;
+            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,113,227,0.06) 0%, transparent 60%),
+                        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(175,82,222,0.04) 0%, transparent 50%),
+                        radial-gradient(ellipse 60% 40% at 20% 80%, rgba(52,199,89,0.04) 0%, transparent 50%);
+        }
+        .container { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+        header { text-align: center; padding: 80px 0 40px; }
+        .logo { display: inline-flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .logo-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, #0071e3, #34c759);
+            border-radius: 11px; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; box-shadow: 0 4px 12px rgba(0,113,227,0.25);
+        }
+        .logo-text {
+            font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #1d1d1f 30%, #6e6e73);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subtitle {
+            font-size: 21px; font-weight: 400; color: var(--text-secondary);
+            letter-spacing: -0.2px; line-height: 1.4;
+        }
+
+        .flow-indicator {
+            display: flex; justify-content: center; align-items: center; gap: 0;
+            margin: 40px auto 48px; max-width: 600px;
+        }
+        .flow-step {
+            display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+            border-radius: 100px; font-size: 13px; font-weight: 500;
+            color: var(--text-tertiary); transition: all 0.5s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .flow-step.active { color: var(--accent); background: var(--accent-light); }
+        .flow-step .step-num {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--border); display: flex; align-items: center;
+            justify-content: center; font-size: 11px; font-weight: 600;
+            transition: all 0.5s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .flow-step.active .step-num { background: var(--accent); color: white; }
+        .flow-arrow { color: var(--border-strong); font-size: 16px; margin: 0 2px; }
+
+        .card {
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-xl); padding: 36px;
+            margin-bottom: 24px; transition: all 0.4s cubic-bezier(0.25,0.1,0.25,1);
+            box-shadow: var(--shadow-sm);
+        }
+        .card:hover { box-shadow: var(--shadow-md); }
+        .card-title {
+            font-size: 22px; font-weight: 700; margin-bottom: 28px;
+            letter-spacing: -0.3px; display: flex; align-items: center; gap: 10px;
+        }
+        .card-title .icon {
+            width: 36px; height: 36px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+
+        .input-section { display: none; }
+        .input-section.active { display: block; animation: slideUp 0.6s cubic-bezier(0.25,0.1,0.25,1); }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .form-group { margin-bottom: 24px; }
+        .form-label {
+            display: block; font-size: 14px; font-weight: 600;
+            color: var(--text-primary); margin-bottom: 8px; letter-spacing: -0.1px;
+        }
+        .form-sublabel { font-size: 12px; font-weight: 400; color: var(--text-tertiary); margin-left: 4px; }
+        .form-input {
+            width: 100%; padding: 12px 16px; background: var(--bg-secondary);
+            border: 1px solid transparent; border-radius: var(--radius-sm);
+            color: var(--text-primary); font-size: 15px; font-family: inherit;
+            transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1); outline: none;
+        }
+        .form-input:focus {
+            border-color: var(--accent); background: var(--bg);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+        .form-input::placeholder { color: var(--text-tertiary); }
+        select.form-input {
+            cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2386868b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+        }
+        select.form-input option { background: var(--bg); color: var(--text-primary); }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+
+        .tags-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag {
+            padding: 8px 16px; background: var(--bg-secondary);
+            border: 1px solid transparent; border-radius: 100px;
+            font-size: 13px; font-weight: 500; color: var(--text-secondary);
+            cursor: pointer; transition: all 0.25s cubic-bezier(0.25,0.1,0.25,1);
+            user-select: none;
+        }
+        .tag:hover { background: var(--accent-light); color: var(--accent); border-color: transparent; }
+        .tag.selected {
+            background: var(--accent); color: white; border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(0,113,227,0.25);
+            transform: scale(1.02);
+        }
+        .tag-category {
+            font-size: 12px; font-weight: 600; color: var(--text-tertiary);
+            margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        .slider-group { margin-bottom: 20px; }
+        .slider-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .slider-label .name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+        .slider-label .value {
+            font-size: 14px; font-weight: 700; color: var(--accent);
+            min-width: 32px; text-align: right;
+        }
+        .slider-desc { font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px; }
+        input[type="range"] {
+            width: 100%; height: 4px; border-radius: 2px;
+            background: var(--bg-secondary); outline: none;
+            -webkit-appearance: none; appearance: none;
+            transition: background 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: white; border: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
+            cursor: pointer; transition: all 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: white; border: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 14px 32px; border: none; border-radius: 100px;
+            font-size: 15px; font-weight: 600; font-family: inherit;
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1);
+            display: inline-flex; align-items: center; gap: 8px;
+            letter-spacing: -0.1px;
+        }
+        .btn-primary {
+            background: var(--accent); color: white;
+            box-shadow: 0 2px 8px rgba(0,113,227,0.3);
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 4px 16px rgba(0,113,227,0.35);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active { transform: scale(0.98) translateY(0); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-secondary {
+            background: var(--bg-secondary); color: var(--text-secondary);
+        }
+        .btn-secondary:hover { background: #ebebed; color: var(--text-primary); }
+        .btn-group { display: flex; gap: 12px; margin-top: 32px; }
+
+        .results-section { display: none; }
+        .results-section.active { display: block; animation: slideUp 0.6s cubic-bezier(0.25,0.1,0.25,1); }
+
+        .result-tabs {
+            display: flex; gap: 2px; background: var(--bg-secondary);
+            border-radius: var(--radius-sm); padding: 3px; margin-bottom: 28px;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .result-tab {
+            flex: 1; padding: 9px 14px; border: none; background: transparent;
+            color: var(--text-tertiary); font-size: 13px; font-weight: 500;
+            font-family: inherit; cursor: pointer; border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1);
+            white-space: nowrap; min-width: fit-content;
+        }
+        .result-tab.active { background: white; color: var(--text-primary); box-shadow: var(--shadow-sm); }
+        .result-tab:hover:not(.active) { color: var(--text-secondary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: slideUp 0.5s cubic-bezier(0.25,0.1,0.25,1); }
+
+        .match-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 20px; margin-bottom: 10px;
+            transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .match-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        .match-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .match-title { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; }
+        .match-salary { text-align: right; }
+        .match-salary .amount { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+        .match-salary .range { font-size: 12px; color: var(--text-tertiary); }
+        .match-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .match-tag {
+            padding: 4px 10px; background: var(--accent-light);
+            border-radius: 100px; font-size: 11px; font-weight: 500; color: var(--accent);
+        }
+        .match-score {
+            display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+            border-radius: 100px; font-size: 12px; font-weight: 600;
+        }
+        .match-score.high { background: var(--green-light); color: var(--green); }
+        .match-score.medium { background: var(--orange-light); color: var(--orange); }
+        .match-score.low { background: var(--red-light); color: var(--red); }
+
+        .predict-box {
+            background: linear-gradient(135deg, var(--accent-light), var(--purple-light));
+            border: 1px solid rgba(0,113,227,0.12); border-radius: var(--radius-lg);
+            padding: 32px; margin-bottom: 24px;
+        }
+        .predict-summary { text-align: center; margin-bottom: 20px; }
+        .predict-summary .label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+        .predict-summary .value {
+            font-size: 40px; font-weight: 800; letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .predict-summary .detail { font-size: 13px; color: var(--text-tertiary); margin-top: 4px; }
+        .predict-offers { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+        .offer-card {
+            background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
+            padding: 16px; transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .offer-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        .offer-card .company { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+        .offer-card .position { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        .offer-card .salary { font-size: 18px; font-weight: 700; color: var(--accent); }
+        .offer-card .probability { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+        .offer-level {
+            display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+            border-radius: 100px; margin-bottom: 8px;
+        }
+        .offer-level.sprint { background: var(--red-light); color: var(--red); }
+        .offer-level.match { background: var(--green-light); color: var(--green); }
+        .offer-level.safe { background: var(--accent-light); color: var(--accent); }
+
+        .benchmark-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius-md); padding: 20px; margin-bottom: 10px;
+            display: flex; gap: 16px; align-items: flex-start;
+            transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .benchmark-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        .benchmark-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .benchmark-info { flex: 1; }
+        .benchmark-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+        .benchmark-bg { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+        .benchmark-result { font-size: 14px; color: var(--accent); font-weight: 500; }
+        .benchmark-detail { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+
+        .path-timeline { position: relative; padding-left: 28px; }
+        .path-timeline::before {
+            content: ''; position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px;
+            background: linear-gradient(to bottom, var(--accent), var(--green), var(--orange));
+            border-radius: 1px;
+        }
+        .path-item {
+            position: relative; margin-bottom: 16px; padding: 16px 20px;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1);
+        }
+        .path-item:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        .path-item::before {
+            content: ''; position: absolute; left: -23px; top: 18px;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--accent); border: 2px solid var(--bg);
+            box-shadow: 0 0 0 2px var(--accent-light);
+        }
+        .path-item .path-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+        .path-item .path-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+        .path-item .path-impact {
+            display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+            background: var(--green-light); border-radius: 100px;
+            font-size: 12px; color: var(--green); font-weight: 600; margin-top: 8px;
+        }
+        .path-gap { font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 500; }
+        .path-gap.gap { background: var(--orange-light); color: var(--orange); }
+        .path-gap.done { background: var(--green-light); color: var(--green); }
+
+        .usajobs-card {
+            background: var(--bg-secondary); border: 1px solid rgba(0,113,227,0.12);
+            border-radius: var(--radius-md); padding: 16px; margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .usajobs-card:hover { box-shadow: var(--shadow-md); }
+        .usajobs-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+            background: var(--accent-light); border-radius: 100px;
+            font-size: 11px; color: var(--accent); font-weight: 500; margin-bottom: 8px;
+        }
+
+        .chart-container { position: relative; width: 100%; max-width: 440px; margin: 0 auto; }
+        .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 768px) { .chart-row { grid-template-columns: 1fr; } .predict-offers { grid-template-columns: 1fr; } }
+
+        .loading-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.92); backdrop-filter: blur(20px);
+            z-index: 100; justify-content: center; align-items: center; flex-direction: column; gap: 20px;
+        }
+        .loading-overlay.active { display: flex; }
+        .loading-spinner {
+            width: 40px; height: 40px; border: 3px solid var(--bg-secondary);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-secondary); font-size: 15px; font-weight: 500; }
+
+        .api-config { margin-top: 20px; padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); }
+        .api-config summary { cursor: pointer; color: var(--text-tertiary); font-size: 13px; font-weight: 500; }
+        .api-config .form-group { margin-top: 12px; }
+
+        .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
+        @media (max-width: 640px) { .summary-bar { grid-template-columns: repeat(2, 1fr); } }
+        .summary-item {
+            background: var(--bg-secondary); border-radius: var(--radius-md);
+            padding: 16px; text-align: center; transition: all 0.3s;
+        }
+        .summary-item:hover { box-shadow: var(--shadow-sm); }
+        .summary-item .s-label { font-size: 11px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .summary-item .s-value { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        .summary-item .s-value.salary { color: var(--accent); }
+        .summary-item .s-value.match { color: var(--green); }
+        .summary-item .s-value.growth { color: var(--purple); }
+
+        .ai-badge {
+            display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+            background: linear-gradient(135deg, var(--accent-light), var(--purple-light));
+            border-radius: 100px; font-size: 11px; color: var(--accent); font-weight: 500;
+        }
+        .github-link {
+            display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 100px;
+            font-size: 12px; color: var(--text-secondary); text-decoration: none;
+            transition: all 0.2s;
+        }
+        .github-link:hover { border-color: var(--accent); color: var(--accent); }
+
+        .back-btn {
+            position: fixed; bottom: 28px; right: 28px; width: 48px; height: 48px;
+            border-radius: 50%; background: var(--accent); color: white; border: none;
+            font-size: 18px; cursor: pointer; box-shadow: var(--shadow-lg);
+            transition: all 0.3s cubic-bezier(0.25,0.1,0.25,1); z-index: 50; display: none;
+        }
+        .back-btn.visible { display: flex; align-items: center; justify-content: center; }
+        .back-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-xl); }
+
+        .user-profile-summary {
+            display: flex; align-items: center; gap: 16px; padding: 20px;
+            background: var(--bg-secondary); border-radius: var(--radius-lg); margin-bottom: 24px;
+        }
+        .user-profile-summary .profile-icon {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--green));
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+        }
+        .user-profile-summary .profile-info { flex: 1; }
+        .user-profile-summary .profile-name { font-weight: 600; font-size: 15px; }
+        .user-profile-summary .profile-detail { font-size: 13px; color: var(--text-secondary); }
+
+        .toast {
+            position: fixed; top: 24px; right: 24px; padding: 12px 20px;
+            background: var(--text-primary); color: white; border-radius: 100px;
+            font-size: 14px; font-weight: 500; z-index: 200;
+            transform: translateY(-20px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.25,0.1,0.25,1);
+            box-shadow: var(--shadow-lg);
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.error { background: var(--red); }
+
+        .soft-skill-radar-wrap { max-width: 380px; margin: 0 auto; }
+
+        .section-divider {
+            height: 1px; background: var(--border); margin: 32px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-bg"></div>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🔍</div>
+                <div class="logo-text">CareerLens</div>
+            </div>
+            <div class="subtitle">输入背景，透视未来</div>
+        </header>
+
+        <div class="flow-indicator" id="flowIndicator">
+            <div class="flow-step active" data-step="input"><span class="step-num">1</span> 输入</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step" data-step="match"><span class="step-num">2</span> 匹配</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step" data-step="predict"><span class="step-num">3</span> 预测</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step" data-step="benchmark"><span class="step-num">4</span> 对标</div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-step" data-step="path"><span class="step-num">5</span> 路径</div>
+        </div>
+
+        <div class="input-section active" id="inputSection">
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon" style="background:var(--accent-light);color:var(--accent);">📝</span>
+                    填写你的背景信息
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">学校 <span class="form-sublabel">南京本科院校</span></label>
+                        <select class="form-input" id="school">
+                            <option value="">选择学校</option>
+                            <optgroup label="985">
+                                <option value="南京大学">南京大学</option>
+                                <option value="东南大学">东南大学</option>
+                            </optgroup>
+                            <optgroup label="211">
+                                <option value="南京航空航天大学">南京航空航天大学</option>
+                                <option value="南京理工大学">南京理工大学</option>
+                                <option value="河海大学">河海大学</option>
+                                <option value="南京师范大学">南京师范大学</option>
+                                <option value="南京农业大学">南京农业大学</option>
+                                <option value="中国药科大学">中国药科大学</option>
+                            </optgroup>
+                            <optgroup label="特色强校">
+                                <option value="南京邮电大学">南京邮电大学</option>
+                                <option value="南京信息工程大学">南京信息工程大学</option>
+                                <option value="南京林业大学">南京林业大学</option>
+                                <option value="南京医科大学">南京医科大学</option>
+                                <option value="南京中医药大学">南京中医药大学</option>
+                                <option value="南京工业大学">南京工业大学</option>
+                                <option value="南京财经大学">南京财经大学</option>
+                                <option value="南京审计大学">南京审计大学</option>
+                            </optgroup>
+                            <optgroup label="普通本科">
+                                <option value="南京艺术学院">南京艺术学院</option>
+                                <option value="南京体育学院">南京体育学院</option>
+                                <option value="江苏警官学院">江苏警官学院</option>
+                                <option value="南京工程学院">南京工程学院</option>
+                                <option value="南京晓庄学院">南京晓庄学院</option>
+                                <option value="金陵科技学院">金陵科技学院</option>
+                                <option value="江苏第二师范学院">江苏第二师范学院</option>
+                                <option value="南京特殊教育师范学院">南京特殊教育师范学院</option>
+                                <option value="三江学院">三江学院（民办）</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">学历</label>
+                        <select class="form-input" id="degree">
+                            <option value="本科">本科</option>
+                            <option value="硕士">硕士</option>
+                            <option value="博士">博士</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">专业大类</label>
+                        <select class="form-input" id="majorCategory" onchange="updateMajorDetail()">
+                            <option value="">选择专业大类</option>
+                            <option value="工学">工学</option>
+                            <option value="理学">理学</option>
+                            <option value="经济学">经济学</option>
+                            <option value="管理学">管理学</option>
+                            <option value="文学">文学</option>
+                            <option value="法学">法学</option>
+                            <option value="教育学">教育学</option>
+                            <option value="医学">医学</option>
+                            <option value="艺术学">艺术学</option>
+                            <option value="农学">农学</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">具体专业 <span class="form-sublabel">先选大类</span></label>
+                        <select class="form-input" id="majorDetail">
+                            <option value="">请先选择专业大类</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">技能标签</label>
+                    <div class="tag-category">💻 数字技能</div>
+                    <div class="tags-container" id="digitalTags">
+                        <span class="tag" data-tag="基础编程">基础编程</span>
+                        <span class="tag" data-tag="数据分析">数据分析</span>
+                        <span class="tag" data-tag="AI工具使用">AI工具使用</span>
+                        <span class="tag" data-tag="办公软件">办公软件</span>
+                        <span class="tag" data-tag="数据库操作">数据库操作</span>
+                        <span class="tag" data-tag="网页开发">网页开发</span>
+                        <span class="tag" data-tag="设计软件">设计软件</span>
+                    </div>
+                    <div class="tag-category">🌍 语言能力</div>
+                    <div class="tags-container" id="langTags">
+                        <span class="tag" data-tag="英语四级">CET-4</span>
+                        <span class="tag" data-tag="英语六级">CET-6</span>
+                        <span class="tag" data-tag="雅思7+">雅思7+</span>
+                        <span class="tag" data-tag="托福100+">托福100+</span>
+                        <span class="tag" data-tag="日语N2+">日语N2+</span>
+                        <span class="tag" data-tag="商务英语">BEC</span>
+                    </div>
+                    <div class="tag-category">📋 证书/资格</div>
+                    <div class="tags-container" id="certTags">
+                        <span class="tag" data-tag="CPA">CPA</span>
+                        <span class="tag" data-tag="CFA">CFA</span>
+                        <span class="tag" data-tag="FRM">FRM</span>
+                        <span class="tag" data-tag="法考">法律职业资格</span>
+                        <span class="tag" data-tag="教师资格">教师资格</span>
+                        <span class="tag" data-tag="PMP">PMP</span>
+                    </div>
+                    <div class="tag-category">💼 实践经验</div>
+                    <div class="tags-container" id="expTags">
+                        <span class="tag" data-tag="大厂实习">大厂实习</span>
+                        <span class="tag" data-tag="创业经验">创业经验</span>
+                        <span class="tag" data-tag="开源贡献">开源贡献</span>
+                        <span class="tag" data-tag="竞赛获奖">竞赛获奖</span>
+                        <span class="tag" data-tag="论文发表">论文发表</span>
+                        <span class="tag" data-tag="金融实习">金融实习</span>
+                        <span class="tag" data-tag="咨询实习">咨询实习</span>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <div class="form-group">
+                    <label class="form-label">🧠 软技能自评 <span class="form-sublabel">1-10分</span></label>
+                    <div class="slider-group">
+                        <div class="slider-label"><span class="name">🔬 分析性思维</span><span class="value" id="analyticalVal">5</span></div>
+                        <div class="slider-desc">逻辑推理、数据解读、问题拆解</div>
+                        <input type="range" id="analytical" min="1" max="10" value="5" oninput="document.getElementById('analyticalVal').textContent=this.value">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span class="name">💪 韧性 / 灵活性 / 适应性</span><span class="value" id="resilienceVal">5</span></div>
+                        <div class="slider-desc">抗压能力、应对变化、快速调整</div>
+                        <input type="range" id="resilience" min="1" max="10" value="5" oninput="document.getElementById('resilienceVal').textContent=this.value">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span class="name">👑 领导力与社会影响力</span><span class="value" id="leadershipVal">5</span></div>
+                        <div class="slider-desc">团队管理、说服力、协调资源</div>
+                        <input type="range" id="leadership" min="1" max="10" value="5" oninput="document.getElementById('leadershipVal').textContent=this.value">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span class="name">💡 创造性思维</span><span class="value" id="creativityVal">5</span></div>
+                        <div class="slider-desc">创新想法、跨界联想、非常规解题</div>
+                        <input type="range" id="creativity" min="1" max="10" value="5" oninput="document.getElementById('creativityVal').textContent=this.value">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label"><span class="name">🔥 动机与自我认知</span><span class="value" id="motivationVal">5</span></div>
+                        <div class="slider-desc">内驱力、目标感、持续学习意愿</div>
+                        <input type="range" id="motivation" min="1" max="10" value="5" oninput="document.getElementById('motivationVal').textContent=this.value">
+                    </div>
+                </div>
+
+                <details class="api-config">
+                    <summary>⚙️ AI推理配置（可选）</summary>
+                    <div class="form-group"><label class="form-label">API 地址</label><input class="form-input" id="apiUrl" placeholder="https://api.deepseek.com/v1/chat/completions"></div>
+                    <div class="form-group"><label class="form-label">API Key</label><input class="form-input" id="apiKey" type="password" placeholder="sk-xxx"></div>
+                    <div class="form-group"><label class="form-label">模型</label><input class="form-input" id="modelName" placeholder="deepseek-chat" value="deepseek-chat"></div>
+                </details>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="startAnalysis()">🚀 开始透视</button>
+                    <button class="btn btn-secondary" onclick="resetForm()">重置</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="user-profile-summary" id="profileSummary"></div>
+            <div class="summary-bar" id="summaryBar"></div>
+            <div class="result-tabs">
+                <button class="result-tab active" data-tab="match" onclick="switchTab('match')">🎯 匹配</button>
+                <button class="result-tab" data-tab="predict" onclick="switchTab('predict')">💰 预测</button>
+                <button class="result-tab" data-tab="benchmark" onclick="switchTab('benchmark')">👥 对标</button>
+                <button class="result-tab" data-tab="path" onclick="switchTab('path')">🛤️ 路径</button>
+                <button class="result-tab" data-tab="usajobs" onclick="switchTab('usajobs')">🇺🇸 美国</button>
+                <button class="result-tab" data-tab="charts" onclick="switchTab('charts')">📊 图表</button>
+                <button class="result-tab" data-tab="ai-insight" onclick="switchTab('ai-insight')" id="aiTabBtn" style="display:none;">🤖 AI</button>
+            </div>
+
+            <div class="tab-content active" id="tab-match"><div class="card"><div class="card-title"><span class="icon" style="background:var(--accent-light);color:var(--accent);">🎯</span>岗位匹配 <span class="ai-badge">AI 驱动</span></div><div id="matchResults"></div></div></div>
+            <div class="tab-content" id="tab-predict"><div class="card"><div class="card-title"><span class="icon" style="background:var(--orange-light);color:var(--orange);">💰</span>Offer 预测 <span class="ai-badge">AI 推理</span></div><div id="predictResults"></div></div></div>
+            <div class="tab-content" id="tab-benchmark"><div class="card"><div class="card-title"><span class="icon" style="background:var(--green-light);color:var(--green);">👥</span>学长对标</div><div id="benchmarkResults"></div></div></div>
+            <div class="tab-content" id="tab-path"><div class="card"><div class="card-title"><span class="icon" style="background:var(--purple-light);color:var(--purple);">🛤️</span>提升路径 <span class="ai-badge">AI 推荐</span></div><div id="pathResults"></div></div></div>
+            <div class="tab-content" id="tab-usajobs"><div class="card"><div class="card-title"><span class="icon" style="background:var(--accent-light);color:var(--accent);">🇺🇸</span>美国参照 <span class="ai-badge">USAJobs API</span></div><div id="usajobsResults"></div></div></div>
+            <div class="tab-content" id="tab-charts"><div class="card"><div class="card-title"><span class="icon" style="background:var(--accent-light);color:var(--accent);">📊</span>数据可视化</div>
+                <div class="chart-row"><div><h4 style="margin-bottom:12px;color:var(--text-secondary);font-size:13px;font-weight:600;">软技能雷达</h4><div class="soft-skill-radar-wrap"><canvas id="softSkillChart"></canvas></div></div><div><h4 style="margin-bottom:12px;color:var(--text-secondary);font-size:13px;font-weight:600;">薪资分布</h4><div class="chart-container"><canvas id="salaryChart"></canvas></div></div></div>
+                <div class="chart-row"><div><h4 style="margin-bottom:12px;color:var(--text-secondary);font-size:13px;font-weight:600;">行业匹配</h4><div class="chart-container"><canvas id="industryChart"></canvas></div></div><div><h4 style="margin-bottom:12px;color:var(--text-secondary);font-size:13px;font-weight:600;">技能价值</h4><div class="chart-container"><canvas id="skillValueChart"></canvas></div></div></div>
+            </div></div>
+            <div class="tab-content" id="tab-ai-insight" style="display:none;"><div class="card"><div class="card-title"><span class="icon" style="background:linear-gradient(135deg,var(--accent-light),var(--purple-light));color:var(--accent);">🤖</span>AI 深度洞察 <span class="ai-badge">LLM</span></div><div id="aiInsightContent"><div style="text-align:center;padding:40px;color:var(--text-tertiary);">需要配置 AI API</div></div></div></div>
+
+            <div class="btn-group" style="justify-content:center;margin-top:24px;">
+                <button class="btn btn-secondary" onclick="goBack()">← 重新输入</button>
+                <button class="btn btn-primary" onclick="exportReport()">📄 导出报告</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">正在分析...</div>
+    </div>
+    <button class="back-btn" id="backBtn" onclick="goBack()">↑</button>
+    <div class="toast" id="toast"></div>
+
+    <script>
+    const MAJOR_DETAIL_MAP = {
+        "工学": ["计算机科学与技术", "软件工程", "人工智能", "数据科学与大数据技术", "电子信息工程", "通信工程", "自动化", "机械工程", "土木工程", "电气工程", "材料科学与工程", "建筑学", "工业设计"],
+        "理学": ["数学与应用数学", "信息与计算科学", "物理学", "化学", "生物科学", "统计学", "应用心理学"],
+        "经济学": ["经济学", "金融学", "金融工程", "国际经济与贸易", "经济统计学"],
+        "管理学": ["工商管理", "会计学", "财务管理", "市场营销", "人力资源管理", "公共管理", "信息管理与信息系统", "电子商务", "物流管理"],
+        "文学": ["汉语言文学", "英语", "日语", "新闻学", "传播学", "广告学", "网络与新媒体"],
+        "法学": ["法学", "政治学", "社会学", "社会工作", "知识产权"],
+        "教育学": ["教育学", "学前教育", "小学教育", "体育教育", "教育技术学"],
+        "医学": ["临床医学", "口腔医学", "预防医学", "药学", "中药学", "护理学", "医学影像学", "康复治疗学"],
+        "艺术学": ["视觉传达设计", "环境设计", "产品设计", "数字媒体艺术", "动画", "美术学", "音乐学", "播音与主持艺术"],
+        "农学": ["农学", "园艺", "植物保护", "林学", "水产养殖学", "动物医学", "食品科学与工程"],
+    };
+
+    const MAJOR_KB = {
+        "工学": {
+            salaryRange: {本科: [10, 30], 硕士: [16, 42], 博士: [25, 60]},
+            topCompanies: ["华为", "中兴", "字节跳动", "腾讯", "阿里巴巴", "大疆", "比亚迪", "蔚来", "西门子", "南瑞集团"],
+            positions: [
+                {title: "软件工程师", salary: [14, 38], match: ["基础编程", "数据库操作", "大厂实习"]},
+                {title: "数据工程师", salary: [16, 40], match: ["基础编程", "数据分析", "数据库操作"]},
+                {title: "AI应用工程师", salary: [18, 45], match: ["基础编程", "AI工具使用", "数据分析"]},
+                {title: "嵌入式工程师", salary: [12, 30], match: ["基础编程", "数据库操作"]},
+                {title: "产品经理", salary: [14, 35], match: ["数据分析", "AI工具使用", "大厂实习"]},
+                {title: "智能制造工程师", salary: [12, 28], match: ["基础编程", "数据分析"]},
+            ],
+            industries: [{name: "互联网/软件", weight: 28}, {name: "智能制造", weight: 18}, {name: "新能源/汽车", weight: 14}, {name: "通信", weight: 12}, {name: "金融科技", weight: 10}, {name: "其他", weight: 18}],
+        },
+        "理学": {
+            salaryRange: {本科: [8, 22], 硕士: [14, 35], 博士: [22, 55]},
+            topCompanies: ["字节跳动", "腾讯", "华为", "药明康德", "中金公司", "南瑞集团"],
+            positions: [
+                {title: "数据科学家", salary: [18, 42], match: ["基础编程", "数据分析", "AI工具使用"]},
+                {title: "算法工程师", salary: [20, 48], match: ["基础编程", "AI工具使用", "数据分析"]},
+                {title: "量化研究员", salary: [22, 55], match: ["基础编程", "数据分析", "CFA"]},
+                {title: "科研人员", salary: [10, 25], match: ["论文发表", "数据分析"]},
+            ],
+            industries: [{name: "互联网/AI", weight: 28}, {name: "金融/量化", weight: 18}, {name: "医药/生物", weight: 15}, {name: "科研/教育", weight: 15}, {name: "数据服务", weight: 12}, {name: "其他", weight: 12}],
+        },
+        "经济学": {
+            salaryRange: {本科: [7, 22], 硕士: [12, 35], 博士: [18, 45]},
+            topCompanies: ["中金公司", "华泰证券", "招商银行", "南京银行", "东方证券", "苏宁金融"],
+            positions: [
+                {title: "投行分析师", salary: [18, 45], match: ["CFA", "金融实习", "英语六级"]},
+                {title: "量化研究员", salary: [20, 50], match: ["基础编程", "数据分析", "CFA"]},
+                {title: "行研分析师", salary: [12, 30], match: ["数据分析", "英语六级", "CFA"]},
+                {title: "风控分析师", salary: [12, 28], match: ["数据分析", "FRM"]},
+                {title: "产品经理(金融)", salary: [14, 32], match: ["数据分析", "AI工具使用"]},
+            ],
+            industries: [{name: "投行/券商", weight: 25}, {name: "商业银行", weight: 20}, {name: "基金/资管", weight: 15}, {name: "金融科技", weight: 15}, {name: "咨询", weight: 10}, {name: "其他", weight: 15}],
+        },
+        "管理学": {
+            salaryRange: {本科: [6, 18], 硕士: [10, 28], 博士: [15, 35]},
+            topCompanies: ["苏宁", "字节跳动", "宝洁", "麦肯锡", "德勤", "安永"],
+            positions: [
+                {title: "产品经理", salary: [12, 30], match: ["数据分析", "AI工具使用", "大厂实习"]},
+                {title: "商业分析师", salary: [12, 28], match: ["数据分析", "基础编程"]},
+                {title: "管培生", salary: [10, 22], match: ["英语六级", "商务英语"]},
+                {title: "咨询顾问", salary: [14, 35], match: ["咨询实习", "英语六级", "数据分析"]},
+                {title: "审计师", salary: [10, 22], match: ["CPA", "英语六级"]},
+            ],
+            industries: [{name: "互联网", weight: 22}, {name: "快消/零售", weight: 18}, {name: "咨询", weight: 15}, {name: "四大会计", weight: 15}, {name: "金融", weight: 12}, {name: "其他", weight: 18}],
+        },
+        "文学": {
+            salaryRange: {本科: [5, 16], 硕士: [8, 22], 博士: [12, 28]},
+            topCompanies: ["字节跳动", "小红书", "B站", "新华社", "新华日报", "苏宁"],
+            positions: [
+                {title: "内容运营", salary: [7, 18], match: ["AI工具使用", "数据分析"]},
+                {title: "品牌营销", salary: [8, 20], match: ["数据分析", "英语六级"]},
+                {title: "跨境电商运营", salary: [8, 22], match: ["商务英语", "数据分析"]},
+                {title: "本地化/AI训练", salary: [8, 20], match: ["AI工具使用", "英语六级"]},
+            ],
+            industries: [{name: "互联网/新媒体", weight: 28}, {name: "跨境电商", weight: 18}, {name: "教育/培训", weight: 15}, {name: "广告/营销", weight: 14}, {name: "传统媒体", weight: 10}, {name: "其他", weight: 15}],
+        },
+        "法学": {
+            salaryRange: {本科: [6, 20], 硕士: [10, 30], 博士: [15, 40]},
+            topCompanies: ["金杜", "君合", "方达", "中伦", "南京市中院", "省检察院"],
+            positions: [
+                {title: "律师(红圈所)", salary: [15, 40], match: ["法考", "英语六级", "商务英语"]},
+                {title: "法务(大厂)", salary: [14, 32], match: ["法考", "英语六级"]},
+                {title: "合规专员", salary: [10, 25], match: ["法考", "数据分析"]},
+                {title: "公务员(司法)", salary: [8, 18], match: ["法考"]},
+            ],
+            industries: [{name: "律师事务所", weight: 28}, {name: "互联网法务", weight: 18}, {name: "政府/法院", weight: 18}, {name: "金融机构", weight: 12}, {name: "企业法务", weight: 14}, {name: "其他", weight: 10}],
+        },
+        "教育学": {
+            salaryRange: {本科: [5, 14], 硕士: [8, 20], 博士: [12, 28]},
+            topCompanies: ["新东方", "好未来", "南京外国语", "南师附中", "高校"],
+            positions: [
+                {title: "教师(重点中学)", salary: [8, 18], match: ["教师资格", "英语六级"]},
+                {title: "教育产品经理", salary: [10, 22], match: ["AI工具使用", "数据分析"]},
+                {title: "高校辅导员", salary: [7, 14], match: ["教师资格"]},
+                {title: "培训师", salary: [8, 20], match: ["AI工具使用", "英语六级"]},
+            ],
+            industries: [{name: "基础教育", weight: 30}, {name: "教育科技", weight: 20}, {name: "高等教育", weight: 18}, {name: "职业培训", weight: 15}, {name: "政府/事业", weight: 10}, {name: "其他", weight: 7}],
+        },
+        "医学": {
+            salaryRange: {本科: [5, 15], 硕士: [10, 25], 博士: [15, 40]},
+            topCompanies: ["江苏省人民医院", "鼓楼医院", "中大医院", "先声药业", "金斯瑞"],
+            positions: [
+                {title: "临床医生(三甲)", salary: [8, 28], match: ["英语六级", "论文发表"]},
+                {title: "医学经理(药企)", salary: [16, 38], match: ["英语六级", "论文发表", "数据分析"]},
+                {title: "CRA/临床监查", salary: [10, 22], match: ["英语六级", "数据分析"]},
+                {title: "AI医疗研究员", salary: [15, 35], match: ["基础编程", "AI工具使用", "论文发表"]},
+            ],
+            industries: [{name: "三甲医院", weight: 32}, {name: "药企/器械", weight: 20}, {name: "CRO", weight: 12}, {name: "AI医疗", weight: 10}, {name: "基层医疗", weight: 14}, {name: "其他", weight: 12}],
+        },
+        "艺术学": {
+            salaryRange: {本科: [5, 18], 硕士: [8, 25], 博士: [12, 30]},
+            topCompanies: ["字节跳动", "网易", "米哈游", "原力动画", "水晶石"],
+            positions: [
+                {title: "UI/UX设计师", salary: [10, 25], match: ["设计软件", "AI工具使用"]},
+                {title: "游戏美术", salary: [10, 28], match: ["设计软件", "AI工具使用"]},
+                {title: "AIGC设计师", salary: [12, 30], match: ["AI工具使用", "设计软件"]},
+                {title: "品牌设计师", salary: [8, 22], match: ["设计软件"]},
+            ],
+            industries: [{name: "游戏/动漫", weight: 22}, {name: "互联网设计", weight: 22}, {name: "广告/品牌", weight: 18}, {name: "AIGC", weight: 15}, {name: "教育", weight: 10}, {name: "其他", weight: 13}],
+        },
+        "农学": {
+            salaryRange: {本科: [5, 14], 硕士: [8, 20], 博士: [12, 30]},
+            topCompanies: ["江苏省农科院", "南京农业大学", "正大集团", "先正达"],
+            positions: [
+                {title: "农业技术员", salary: [6, 14], match: ["数据分析"]},
+                {title: "智慧农业工程师", salary: [10, 22], match: ["基础编程", "数据分析", "AI工具使用"]},
+                {title: "科研助理", salary: [6, 15], match: ["论文发表", "数据分析"]},
+            ],
+            industries: [{name: "农业科研", weight: 28}, {name: "智慧农业", weight: 18}, {name: "种业/农化", weight: 18}, {name: "政府/事业", weight: 16}, {name: "食品加工", weight: 10}, {name: "其他", weight: 10}],
+        },
+    };
+
+    const NJ_SCHOOL_TIERS = {"南京大学":1,"东南大学":1,"南京航空航天大学":2,"南京理工大学":2,"河海大学":2,"南京师范大学":2,"南京农业大学":2,"中国药科大学":2,"南京邮电大学":3,"南京信息工程大学":3,"南京林业大学":3,"南京医科大学":3,"南京中医药大学":3,"南京工业大学":3,"南京财经大学":3,"南京审计大学":3,"南京艺术学院":4,"南京体育学院":4,"江苏警官学院":4,"南京工程学院":4,"南京晓庄学院":4,"金陵科技学院":4,"江苏第二师范学院":4,"南京特殊教育师范学院":4,"三江学院":5};
+    const SKILL_VALUES = {"基础编程":7,"数据分析":7,"AI工具使用":8,"办公软件":3,"数据库操作":5,"网页开发":5,"设计软件":4,"英语四级":2,"英语六级":4,"雅思7+":6,"托福100+":6,"日语N2+":3,"商务英语":4,"CPA":7,"CFA":8,"FRM":6,"法考":7,"PMP":4,"教师资格":2,"大厂实习":8,"创业经验":5,"开源贡献":6,"竞赛获奖":5,"论文发表":6,"金融实习":6,"咨询实习":5};
+    const SOFT_SKILL_WEIGHTS = {"工学":{analytical:0.30,resilience:0.15,leadership:0.15,creativity:0.25,motivation:0.15},"理学":{analytical:0.35,resilience:0.15,leadership:0.10,creativity:0.25,motivation:0.15},"经济学":{analytical:0.25,resilience:0.15,leadership:0.20,creativity:0.15,motivation:0.25},"管理学":{analytical:0.15,resilience:0.15,leadership:0.30,creativity:0.15,motivation:0.25},"文学":{analytical:0.15,resilience:0.15,leadership:0.15,creativity:0.35,motivation:0.20},"法学":{analytical:0.30,resilience:0.20,leadership:0.20,creativity:0.10,motivation:0.20},"教育学":{analytical:0.15,resilience:0.20,leadership:0.25,creativity:0.15,motivation:0.25},"医学":{analytical:0.25,resilience:0.25,leadership:0.10,creativity:0.10,motivation:0.30},"艺术学":{analytical:0.10,resilience:0.15,leadership:0.10,creativity:0.45,motivation:0.20},"农学":{analytical:0.20,resilience:0.25,leadership:0.10,creativity:0.15,motivation:0.30}};
+    const USAJOBS_DATA = {"工学":[{series:"0800",title:"Engineering Group",salary:"$45,000 - $145,000",desc:"土木/机械/电气/计算机等，GS-5至GS-15",count:"约12,000个在招"},{series:"1550",title:"Computer Science",salary:"$55,000 - $165,000",desc:"网络安全/软件开发/数据架构",count:"约5,000个在招"},{series:"2210",title:"Information Technology",salary:"$50,000 - $155,000",desc:"IT管理/运维/安全",count:"约8,000个在招"}],"理学":[{series:"0400",title:"Natural Sciences",salary:"$40,000 - $140,000",desc:"NASA/NIH/NOAA研究岗",count:"约4,000个在招"},{series:"1520",title:"Mathematics",salary:"$50,000 - $150,000",desc:"NSA/Census Bureau数学统计",count:"约2,000个在招"}],"经济学":[{series:"0110",title:"Economist",salary:"$45,000 - $145,000",desc:"Fed/Treasury/BLS经济分析",count:"约1,500个在招"},{series:"0501",title:"Financial Management",salary:"$40,000 - $140,000",desc:"联邦财务管理/预算/审计",count:"约3,000个在招"}],"管理学":[{series:"0301",title:"Miscellaneous Admin",salary:"$35,000 - $130,000",desc:"行政管理/项目管理",count:"约8,000个在招"},{series:"2010",title:"Human Resources",salary:"$35,000 - $120,000",desc:"联邦HR/培训发展",count:"约2,500个在招"}],"文学":[{series:"1001",title:"General Arts & Info",salary:"$35,000 - $120,000",desc:"信息管理/传播/公共事务",count:"约2,000个在招"},{series:"1082",title:"Writer/Editor",salary:"$38,000 - $110,000",desc:"技术写作/编辑",count:"约1,000个在招"}],"法学":[{series:"0905",title:"Attorney",salary:"$55,000 - $170,000",desc:"联邦律师/检察官",count:"约2,000个在招"},{series:"0901",title:"Legal & Kindred",salary:"$45,000 - $150,000",desc:"法务/合规",count:"约1,500个在招"}],"教育学":[{series:"1701",title:"General Education",salary:"$35,000 - $110,000",desc:"教育管理/政策/培训",count:"约2,000个在招"}],"医学":[{series:"0602",title:"Medical Officer",salary:"$65,000 - $250,000",desc:"VA/NIH/DOD临床",count:"约5,000个在招"},{series:"0603",title:"Nurse",salary:"$45,000 - $130,000",desc:"联邦医院护士",count:"约4,000个在招"}],"艺术学":[{series:"1001",title:"General Arts",salary:"$35,000 - $110,000",desc:"视觉设计/文化管理",count:"约800个在招"}],"农学":[{series:"0400",title:"Natural Sciences",salary:"$40,000 - $120,000",desc:"USDA农业研究",count:"约1,500个在招"}]};
+    const BENCHMARK_TEMPLATES = {"工学":[{name:"学长 A",avatar:"👨‍💻",bg:"南大计算机，基础编程+大厂实习",result:"字节跳动 后端开发",salary:"年薪32万",detail:"大三暑期实习转正"},{name:"学姐 B",avatar:"👩‍💻",bg:"东南大学电子，数据分析+AI工具",result:"华为 算法工程师",salary:"年薪38万",detail:"数学建模国一，华为实习转正"},{name:"学长 C",avatar:"🧑‍💻",bg:"南航自动化，基础编程+竞赛获奖",result:"大疆 嵌入式工程师",salary:"年薪28万",detail:"电赛国一，两段实习"},{name:"学姐 D",avatar:"👩‍🎓",bg:"南理工机械，数据分析+英语六级",result:"比亚迪 智能制造",salary:"年薪22万",detail:"英语六级560"}],"经济学":[{name:"学姐 A",avatar:"👩‍💼",bg:"南大金融，CFA+英语六级",result:"华泰证券 投行分析师",salary:"年薪40万+bonus",detail:"CFA二级通过"},{name:"学长 B",avatar:"👨‍💼",bg:"南财经济，基础编程+数据分析",result:"招商银行 量化风控",salary:"年薪28万",detail:"自学Python"},{name:"学姐 C",avatar:"👩‍💼",bg:"河海金融，CPA+金融实习",result:"南京银行 风控分析师",salary:"年薪20万",detail:"CPA过3科"}],"管理学":[{name:"学姐 A",avatar:"👩‍💼",bg:"南大工商，数据分析+英语",result:"字节跳动 产品经理",salary:"年薪28万",detail:"两段大厂产品实习"},{name:"学长 B",avatar:"👨‍💼",bg:"南审会计，CPA+英语六级",result:"德勤 审计师",salary:"年薪18万(起)",detail:"CPA过4科"},{name:"学姐 C",avatar:"👩‍💼",bg:"南财管理，咨询实习+英语",result:"麦肯锡 分析师",salary:"年薪32万",detail:"咨询PTA转正"}],"理学":[{name:"学长 A",avatar:"👨‍🔬",bg:"南大数学，基础编程+数据分析",result:"华泰证券 量化研究员",salary:"年薪45万",detail:"数学竞赛国奖"},{name:"学姐 B",avatar:"👩‍🔬",bg:"南大物理，AI工具+论文发表",result:"腾讯 AI算法工程师",salary:"年薪42万",detail:"1篇顶会论文"}],"default":[{name:"学长 A",avatar:"🧑",bg:"南京高校同专业，综合能力优秀",result:"知名企业 核心岗位",salary:"年薪18万+",detail:"多段实习经历"},{name:"学姐 B",avatar:"👩",bg:"同专业，技能突出",result:"行业头部公司",salary:"年薪15万+",detail:"竞赛获奖+实习"}]};
+    const PATH_TEMPLATES = {"工学":[{title:"掌握AI应用开发",desc:"学习Prompt Engineering和AI Agent开发，能独立构建AI应用。",impact:"薪资+30%，可冲击大厂AI岗位",resources:["langchain-ai/langchain"]},{title:"刷LeetCode至200+",desc:"算法能力是大厂面试的敲门砖。",impact:"大厂面试通过率+40%",resources:["neetcode-gh/neo"]},{title:"积累开源贡献",desc:"在GitHub上参与知名开源项目，提交PR。",impact:"简历竞争力+50%",resources:["firstcontributions/first-contributions"]}],"经济学":[{title:"考下CFA一级",desc:"CFA是金融行业的黄金证书。",impact:"投行/券商可能性+50%",resources:[]},{title:"学习Python量化",desc:"金融+编程是最强组合。",impact:"量化岗位可能性+60%",resources:["vnpy/vnpy"]},{title:"积累券商实习",desc:"至少2段券商/基金实习。",impact:"头部机构可能性+40%",resources:[]}],"管理学":[{title:"学习SQL+数据分析",desc:"商业分析能力是核心技能。",impact:"商业分析岗位可能性+50%",resources:["microsoft/ML-For-Beginners"]},{title:"积累咨询/大厂实习",desc:"至少1-2段咨询或大厂实习。",impact:"头部公司可能性+40%",resources:[]},{title:"通过CPA核心科目",desc:"CPA是会计/审计方向的顶级证书。",impact:"四大/头部岗位可能性+50%",resources:[]}],"理学":[{title:"掌握机器学习实战",desc:"从理论到工程实现。",impact:"数据科学家岗位+40%",resources:["microsoft/ML-For-Beginners"]},{title:"学习量化交易框架",desc:"掌握vnpy等框架。",impact:"量化岗位可能性+60%",resources:["vnpy/vnpy"]}],"法学":[{title:"通过法律职业资格考试",desc:"法考是从业门槛。",impact:"法律行业准入+100%",resources:[]},{title:"学习数据合规/隐私法",desc:"数据合规是增长最快的方向。",impact:"合规方向薪资+40%",resources:[]}],"文学":[{title:"掌握AI内容创作工具",desc:"学习AIGC工具，提升效率10倍。",impact:"内容岗薪资+25%",resources:[]},{title:"学习数据分析基础",desc:"内容运营需要数据驱动。",impact:"运营岗可能性+35%",resources:[]}],"教育学":[{title:"掌握AI教育工具",desc:"学习AI辅助教学工具。",impact:"教育科技岗可能性+40%",resources:[]},{title:"考取教师资格证",desc:"教师岗位必备证书。",impact:"教师岗位准入+100%",resources:[]}],"医学":[{title:"提升英语至六级以上",desc:"三甲医院和药企对英语有硬性要求。",impact:"三甲/药企可能性+30%",resources:[]},{title:"学习AI+医疗应用",desc:"AI医疗是未来方向。",impact:"AI医疗方向薪资+35%",resources:[]}],"艺术学":[{title:"掌握AIGC设计工具",desc:"学习Midjourney/SD等AI设计工具。",impact:"设计岗薪资+30%",resources:[]},{title:"学习基础编程",desc:"编程能力让设计师可以做交互原型。",impact:"高薪岗位可能性+25%",resources:[]}],"农学":[{title:"学习智慧农业技术",desc:"掌握IoT+数据分析在农业的应用。",impact:"智慧农业岗位可能性+50%",resources:[]},{title:"学习数据分析",desc:"农业科研越来越依赖数据驱动。",impact:"科研岗竞争力+30%",resources:[]}],"default":[{title:"补充数字技能",desc:"基础编程和AI工具使用都是加分项。",impact:"薪资+15-20%",resources:["microsoft/ML-For-Beginners"]},{title:"积累实习经验",desc:"至少1-2段相关实习。",impact:"就业竞争力+40%",resources:[]},{title:"英语能力提升",desc:"CET-6是基本线。",impact:"外企可能性+30%",resources:[]}]};
+
+    let selectedTags = new Set();
+    let analysisData = null;
+    let charts = {};
+
+    document.querySelectorAll('.tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            const n = tag.dataset.tag;
+            if (selectedTags.has(n)) { selectedTags.delete(n); tag.classList.remove('selected'); }
+            else { selectedTags.add(n); tag.classList.add('selected'); }
+        });
+    });
+
+    function updateMajorDetail() {
+        const cat = document.getElementById('majorCategory').value;
+        const sel = document.getElementById('majorDetail');
+        sel.innerHTML = '<option value="">选择具体专业</option>';
+        if (cat && MAJOR_DETAIL_MAP[cat]) {
+            MAJOR_DETAIL_MAP[cat].forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+        }
+    }
+
+    function showToast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast ' + type; setTimeout(() => t.classList.add('show'), 10); setTimeout(() => t.classList.remove('show'), 3000); }
+    function resetForm() { document.getElementById('school').value=''; document.getElementById('majorCategory').value=''; document.getElementById('majorDetail').innerHTML='<option value="">请先选择专业大类</option>'; document.getElementById('degree').value='本科'; selectedTags.clear(); document.querySelectorAll('.tag').forEach(t=>t.classList.remove('selected')); ['analytical','resilience','leadership','creativity','motivation'].forEach(id=>{document.getElementById(id).value=5;document.getElementById(id+'Val').textContent='5';}); }
+    function updateFlowIndicator(step) { const steps=['input','match','predict','benchmark','path']; const idx=steps.indexOf(step); document.querySelectorAll('.flow-step').forEach((el,i)=>el.classList.toggle('active',i<=idx)); }
+    function switchTab(tabName) { document.querySelectorAll('.result-tab').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(t=>{t.classList.remove('active');t.style.display='none';}); document.querySelector(`.result-tab[data-tab="${tabName}"]`).classList.add('active'); const el=document.getElementById(`tab-${tabName}`); if(el){el.style.display='block';el.classList.add('active');} updateFlowIndicator(tabName==='usajobs'||tabName==='charts'||tabName==='ai-insight'?'path':tabName); }
+    function goBack() { document.getElementById('inputSection').classList.add('active'); document.getElementById('resultsSection').classList.remove('active'); document.getElementById('backBtn').classList.remove('visible'); updateFlowIndicator('input'); }
+    function getSchoolBonus(s) { const t=NJ_SCHOOL_TIERS[s]||4; return {1:1.4,2:1.25,3:1.1,4:1.0,5:0.9}[t]; }
+    function getSoftSkills() { return {analytical:+document.getElementById('analytical').value,resilience:+document.getElementById('resilience').value,leadership:+document.getElementById('leadership').value,creativity:+document.getElementById('creativity').value,motivation:+document.getElementById('motivation').value}; }
+    function calculateSoftSkillBonus(ss,mc) { const w=SOFT_SKILL_WEIGHTS[mc]||{analytical:0.2,resilience:0.2,leadership:0.2,creativity:0.2,motivation:0.2}; return 0.7+(ss.analytical*w.analytical+ss.resilience*w.resilience+ss.leadership*w.leadership+ss.creativity*w.creativity+ss.motivation*w.motivation)/10*0.6; }
+    function calculateSkillScore(tags,pos) { if(!pos.match||pos.match.length===0)return 50; let m=0; pos.match.forEach(r=>{tags.forEach(t=>{if(t===r||t.includes(r)||r.includes(t))m++;});}); return Math.min(95,Math.round(m/pos.match.length*70+30)); }
+    function calculateSalary(ui) { const kb=MAJOR_KB[ui.majorCategory]||MAJOR_KB['工学']; const br=kb.salaryRange[ui.degree]||kb.salaryRange['本科']; const sb=getSchoolBonus(ui.school); let sk=1.0; Array.from(ui.tags).forEach(t=>{sk+=(SKILL_VALUES[t]||0)*0.02;}); const soft=calculateSoftSkillBonus(ui.softSkills,ui.majorCategory); const l=Math.round(br[0]*sb*sk*soft),h=Math.round(br[1]*sb*sk*soft); return {low:l,high:h,median:Math.round((l+h)/2)}; }
+    function matchPositions(ui) { const kb=MAJOR_KB[ui.majorCategory]||MAJOR_KB['工学']; const tags=Array.from(ui.tags); const soft=calculateSoftSkillBonus(ui.softSkills,ui.majorCategory); return kb.positions.map(pos=>{const sc=calculateSkillScore(tags,pos); const ps={low:Math.round(pos.salary[0]*getSchoolBonus(ui.school)*(1+(sc-50)*0.005)*soft),high:Math.round(pos.salary[1]*getSchoolBonus(ui.school)*(1+(sc-50)*0.005)*soft)}; return{...pos,score:sc,adjustedSalary:ps,level:sc>=75?'high':sc>=50?'medium':'low'};}).sort((a,b)=>b.score-a.score); }
+    function generateOffers(ui) { const kb=MAJOR_KB[ui.majorCategory]||MAJOR_KB['工学']; const sal=calculateSalary(ui); const cos=kb.topCompanies; const offers=[]; const used=new Set(); [{l:'冲刺',p:'20-35%',m:[1.1,1.3],c:2},{l:'匹配',p:'50-70%',m:[0.9,1.1],c:3},{l:'保底',p:'80-95%',m:[0.7,0.9],c:2}].forEach(lv=>{for(let i=0;i<lv.c&&cos.length>0;i++){let co;do{co=cos[Math.floor(Math.random()*cos.length)];}while(used.has(co)&&used.size<cos.length);used.add(co);const pos=kb.positions[Math.floor(Math.random()*kb.positions.length)];const sL=Math.round(sal.median*lv.m[0]*(0.85+Math.random()*0.3)),sH=Math.round(sal.median*lv.m[1]*(0.85+Math.random()*0.3));offers.push({company:co,position:pos.title,salaryLow:Math.min(sL,sH),salaryHigh:Math.max(sL,sH),probability:lv.p,level:lv.l});}}); return {salary:sal,offers}; }
+    function generateBenchmarks(ui) { return (BENCHMARK_TEMPLATES[ui.majorCategory]||BENCHMARK_TEMPLATES['default']).map(t=>({...t,relevance:Math.round(70+Math.random()*25)})); }
+    function generatePaths(ui) { const tags=Array.from(ui.tags); return (PATH_TEMPLATES[ui.majorCategory]||PATH_TEMPLATES['default']).map((p,i)=>({...p,priority:i+1,currentGap:!tags.some(t=>p.title.includes(t))})); }
+
+    function renderMatchResults(positions) { const c=document.getElementById('matchResults'); if(!positions||!positions.length){c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-tertiary);">暂无结果</div>';return;} c.innerHTML=positions.map(pos=>`<div class="match-card"><div class="match-header"><div><div class="match-title">${pos.title}</div><span class="match-score ${pos.level}">匹配度 ${pos.score}%</span></div><div class="match-salary"><div class="amount">${pos.adjustedSalary.low}-${pos.adjustedSalary.high}万</div><div class="range">年薪</div></div></div><div class="match-tags">${pos.match.map(m=>`<span class="match-tag">${m}</span>`).join('')}</div></div>`).join(''); }
+    function renderPredictResults(data) { const {salary:s,offers:o}=data; document.getElementById('predictResults').innerHTML=`<div class="predict-box"><div class="predict-summary"><div class="label">预估年薪范围</div><div class="value">${s.low}万 - ${s.high}万</div><div class="detail">中位数 ${s.median}万 | 含软技能评估</div></div></div><div class="predict-offers">${o.map(x=>`<div class="offer-card"><span class="offer-level ${x.level==='冲刺'?'sprint':x.level==='匹配'?'match':'safe'}">${x.level}</span><div class="company">${x.company}</div><div class="position">${x.position}</div><div class="salary">${x.salaryLow}-${x.salaryHigh}万</div><div class="probability">概率: ${x.probability}</div></div>`).join('')}</div>`; }
+    function renderBenchmarkResults(benchmarks) { const colors=['linear-gradient(135deg,#0071e3,#34c759)','linear-gradient(135deg,#ff9500,#ff3b30)','linear-gradient(135deg,#af52de,#0071e3)','linear-gradient(135deg,#34c759,#0071e3)']; document.getElementById('benchmarkResults').innerHTML=benchmarks.map((b,i)=>`<div class="benchmark-card"><div class="benchmark-avatar" style="background:${colors[i%colors.length]};">${b.avatar}</div><div class="benchmark-info"><div class="benchmark-name">${b.name}</div><div class="benchmark-bg">${b.bg}</div><div class="benchmark-result">→ ${b.result}，${b.salary}</div><div class="benchmark-detail">${b.detail}</div><div style="margin-top:6px;"><span class="match-score high">相似度 ${b.relevance}%</span></div></div></div>`).join(''); }
+    function renderPathResults(paths) { document.getElementById('pathResults').innerHTML=`<div class="path-timeline">${paths.map(p=>`<div class="path-item"><div class="path-title"><span style="color:var(--accent);">P${p.priority}</span> ${p.title} <span class="path-gap ${p.currentGap?'gap':'done'}">${p.currentGap?'待提升':'已具备'}</span></div><div class="path-desc">${p.desc}</div><div class="path-impact">📈 ${p.impact}</div>${p.resources&&p.resources.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">${p.resources.map(r=>`<a class="github-link" href="https://github.com/${r}" target="_blank">📦 ${r}</a>`).join('')}</div>`:''}</div>`).join('')}</div>`; }
+    function renderUSAJobs(ui) { const d=USAJOBS_DATA[ui.majorCategory]||[]; const c=document.getElementById('usajobsResults'); if(!d.length){c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-tertiary);">暂无数据</div>';return;} c.innerHTML=`<div style="margin-bottom:16px;padding:12px;background:var(--accent-light);border-radius:var(--radius-sm);font-size:13px;color:var(--text-secondary);">💡 基于 <a href="https://developer.usajobs.gov/" target="_blank" style="color:var(--accent);">USAJobs API</a> 和 <a href="https://github.com/workforce-data-initiative/skills-api/wiki/API-Overview" target="_blank" style="color:var(--accent);">Open Skills API</a></div>${d.map(x=>`<div class="usajobs-card"><div class="usajobs-badge">🇺🇸 Series ${x.series}</div><div style="font-size:15px;font-weight:600;margin-bottom:4px;">${x.title}</div><div style="font-size:14px;color:var(--accent);font-weight:600;margin-bottom:4px;">${x.salary}</div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">${x.desc}</div><div style="font-size:12px;color:var(--text-tertiary);">${x.count}</div></div>`).join('')}<div style="margin-top:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);font-size:12px;color:var(--text-tertiary);line-height:1.8;">美国同类岗位薪资约为国内 <strong style="color:var(--accent);">1.5-3倍</strong>（PPP约1.2-1.8倍）。联邦岗位福利体系与国内差异大。</div>`; }
+
+    function renderCharts(ui) {
+        const kb=MAJOR_KB[ui.majorCategory]||MAJOR_KB['工学']; const tags=Array.from(ui.tags); const sal=calculateSalary(ui); const ss=ui.softSkills;
+        Object.values(charts).forEach(c=>c&&c.destroy()); charts={};
+        const chartFont={family:"'Inter','Noto Sans SC',sans-serif"};
+        const gridColor='rgba(0,0,0,0.05)'; const tickColor='#86868b';
+
+        charts.softSkill=new Chart(document.getElementById('softSkillChart').getContext('2d'),{type:'radar',data:{labels:['分析性思维','韧性/适应性','领导力','创造性','动机/自我认知'],datasets:[{label:'你的软技能',data:[ss.analytical,ss.resilience,ss.leadership,ss.creativity,ss.motivation],backgroundColor:'rgba(0,113,227,0.1)',borderColor:'rgba(0,113,227,0.7)',borderWidth:2,pointBackgroundColor:'#0071e3',pointRadius:4},{label:'行业期望',data:(()=>{const w=SOFT_SKILL_WEIGHTS[ui.majorCategory]||SOFT_SKILL_WEIGHTS['工学'];return[w.analytical*25,w.resilience*25,w.leadership*25,w.creativity*25,w.motivation*25].map(v=>Math.min(10,Math.round(v)));})(),backgroundColor:'rgba(255,149,0,0.06)',borderColor:'rgba(255,149,0,0.4)',borderWidth:1,borderDash:[4,4],pointRadius:2}]},options:{responsive:true,scales:{r:{beginAtZero:true,max:10,grid:{color:gridColor},angleLines:{color:gridColor},pointLabels:{color:tickColor,font:{size:11,...chartFont}},ticks:{display:false}}},plugins:{legend:{labels:{color:tickColor,font:{size:11,...chartFont}}}}}});
+
+        const sL=[],sD=[],sC=[];for(let s=sal.low;s<=sal.high;s+=Math.max(1,Math.round((sal.high-sal.low)/8))){sL.push(s+'万');sD.push(Math.round((1-Math.abs(s-sal.median)/(sal.high-sal.low))*100));sC.push(s===sal.median?'rgba(255,149,0,0.8)':'rgba(0,113,227,0.5)');}
+        charts.salary=new Chart(document.getElementById('salaryChart').getContext('2d'),{type:'bar',data:{labels:sL,datasets:[{data:sD,backgroundColor:sC,borderRadius:4}]},options:{responsive:true,scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10,...chartFont}}},y:{grid:{color:gridColor},ticks:{color:tickColor}}},plugins:{legend:{display:false}}}});
+
+        charts.industry=new Chart(document.getElementById('industryChart').getContext('2d'),{type:'doughnut',data:{labels:kb.industries.map(i=>i.name),datasets:[{data:kb.industries.map(i=>i.weight),backgroundColor:['rgba(0,113,227,0.7)','rgba(255,149,0,0.7)','rgba(52,199,89,0.7)','rgba(255,59,48,0.7)','rgba(175,82,222,0.7)','rgba(142,142,147,0.4)'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:tickColor,font:{size:11,...chartFont},padding:10}}}}});
+
+        const sorted=tags.map(t=>({name:t,value:SKILL_VALUES[t]||3})).sort((a,b)=>b.value-a.value).slice(0,8);
+        charts.skillValue=new Chart(document.getElementById('skillValueChart').getContext('2d'),{type:'bar',data:{labels:sorted.map(s=>s.name),datasets:[{data:sorted.map(s=>s.value),backgroundColor:sorted.map((_,i)=>['rgba(255,149,0,0.7)','rgba(0,113,227,0.6)','rgba(52,199,89,0.6)','rgba(175,82,222,0.6)','rgba(255,59,48,0.6)','rgba(0,113,227,0.4)','rgba(255,149,0,0.4)','rgba(52,199,89,0.4)'][i%8]),borderRadius:4}]},options:{indexAxis:'y',responsive:true,scales:{x:{grid:{color:gridColor},ticks:{color:tickColor},max:10},y:{grid:{display:false},ticks:{color:tickColor,font:{size:11,...chartFont}}}},plugins:{legend:{display:false}}}});
+    }
+
+    function renderProfileSummary(ui) { const tags=Array.from(ui.tags); const ss=ui.softSkills; const avg=((ss.analytical+ss.resilience+ss.leadership+ss.creativity+ss.motivation)/5).toFixed(1); const detail=document.getElementById('majorDetail').value; document.getElementById('profileSummary').innerHTML=`<div class="profile-icon">🎓</div><div class="profile-info"><div class="profile-name">${ui.school} · ${ui.majorCategory}${detail?' / '+detail:''} · ${ui.degree}</div><div class="profile-detail">${tags.join(' / ')} | 软技能 ${avg}</div></div>`; }
+    function renderSummaryBar(sal,pos,ss) { const avg=((ss.analytical+ss.resilience+ss.leadership+ss.creativity+ss.motivation)/5).toFixed(1); document.getElementById('summaryBar').innerHTML=`<div class="summary-item"><div class="s-label">年薪中位数</div><div class="s-value salary">${sal.median}万</div></div><div class="summary-item"><div class="s-label">最高匹配</div><div class="s-value match">${pos&&pos.length?pos[0].score+'%':'-'}</div></div><div class="summary-item"><div class="s-label">软技能</div><div class="s-value growth">${avg}</div></div><div class="summary-item"><div class="s-label">技能数</div><div class="s-value" style="color:var(--accent);">${selectedTags.size}</div></div>`; }
+
+    async function callLLMAPI(ui,prompt) { const url=document.getElementById('apiUrl').value; const key=document.getElementById('apiKey').value; const model=document.getElementById('modelName').value||'deepseek-chat'; if(!url||!key)return null; try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model,messages:[{role:'system',content:'你是资深职业规划顾问。'},{role:'user',content:prompt}],temperature:0.7,max_tokens:2000})}); if(!r.ok)throw new Error(r.status); const d=await r.json(); return d.choices[0].message.content;}catch(e){console.error(e);return null;} }
+
+    async function startAnalysis() {
+        const school=document.getElementById('school').value; const majorCategory=document.getElementById('majorCategory').value; const majorDetail=document.getElementById('majorDetail').value; const degree=document.getElementById('degree').value;
+        if(!school||!majorCategory){showToast('请选择学校和专业大类','error');return;}
+        if(selectedTags.size===0){showToast('请至少选择一个技能标签','error');return;}
+        const softSkills=getSoftSkills(); const userInput={school,majorCategory,majorDetail,degree,tags:selectedTags,softSkills};
+        const ov=document.getElementById('loadingOverlay'); const lt=document.getElementById('loadingText'); ov.classList.add('active');
+        lt.textContent='🔍 匹配市场数据...'; await new Promise(r=>setTimeout(r,400));
+        const positions=matchPositions(userInput);
+        lt.textContent='💰 预测Offer...'; await new Promise(r=>setTimeout(r,400));
+        const offerData=generateOffers(userInput);
+        lt.textContent='👥 查找学长案例...'; await new Promise(r=>setTimeout(r,300));
+        const benchmarks=generateBenchmarks(userInput);
+        lt.textContent='🛤️ 规划路径...'; await new Promise(r=>setTimeout(r,300));
+        const paths=generatePaths(userInput);
+        let aiInsight=null; const apiUrl=document.getElementById('apiUrl').value; const apiKey=document.getElementById('apiKey').value;
+        if(apiUrl&&apiKey){lt.textContent='🤖 AI分析...'; const detail=majorDetail||majorCategory; const prompt=`我是${school}${detail}专业${degree}，技能：${Array.from(selectedTags).join('、')}。软技能：分析${softSkills.analytical}/10 韧性${softSkills.resilience}/10 领导力${softSkills.leadership}/10 创造力${softSkills.creativity}/10 动机${softSkills.motivation}/10。给出：1.最适合3个岗位 2.预估薪资 3.关键提升建议。简洁回答。`; aiInsight=await callLLMAPI(userInput,prompt);}
+        lt.textContent='✨ 生成报告...'; await new Promise(r=>setTimeout(r,200));
+        analysisData={userInput,positions,offerData,benchmarks,paths,aiInsight};
+        renderProfileSummary(userInput); renderSummaryBar(offerData.salary,positions,softSkills);
+        renderMatchResults(positions); renderPredictResults(offerData); renderBenchmarkResults(benchmarks); renderPathResults(paths); renderUSAJobs(userInput);
+        if(aiInsight){document.getElementById('aiTabBtn').style.display='';document.getElementById('aiInsightContent').innerHTML=`<div style="line-height:1.8;color:var(--text-secondary);white-space:pre-wrap;font-size:14px;">${aiInsight.replace(/\n/g,'<br>')}</div>`;}
+        document.getElementById('inputSection').classList.remove('active'); document.getElementById('resultsSection').classList.add('active'); document.getElementById('backBtn').classList.add('visible'); ov.classList.remove('active');
+        updateFlowIndicator('match'); switchTab('match'); setTimeout(()=>renderCharts(userInput),300); showToast('分析完成！');
+    }
+
+    function exportReport() { if(!analysisData)return; const{userInput:ui,positions,offerData,benchmarks,paths}=analysisData; const tags=Array.from(ui.tags); const s=ui.softSkills; let r=`CareerLens 职业透视报告\n${'='.repeat(50)}\n\n学校：${ui.school}\n专业：${ui.majorCategory}${ui.majorDetail?' / '+ui.majorDetail:''}\n学历：${ui.degree}\n技能：${tags.join('、')}\n软技能：分析${s.analytical} 韧性${s.resilience} 领导力${s.leadership} 创造力${s.creativity} 动机${s.motivation}\n\n薪资：${offerData.salary.low}-${offerData.salary.high}万\n\n岗位匹配：\n`; positions.forEach(p=>{r+=`${p.title} | ${p.score}% | ${p.adjustedSalary.low}-${p.adjustedSalary.high}万\n`;}); r+='\n学长对标：\n'; benchmarks.forEach(b=>{r+=`${b.name}：${b.bg} → ${b.result}，${b.salary}\n`;}); r+='\n提升路径：\n'; paths.forEach(p=>{r+=`${p.priority}. ${p.title} → ${p.impact}\n`;}); const blob=new Blob([r],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`CareerLens_${ui.school}_${ui.majorCategory}_报告.txt`; a.click(); URL.revokeObjectURL(url); showToast('报告已导出！'); }
+    </script>
+</body>
+</html>
